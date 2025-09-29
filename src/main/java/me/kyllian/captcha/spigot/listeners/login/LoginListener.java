@@ -20,6 +20,5 @@ public class LoginListener implements Listener {
     public void on(LoginEvent event) {
         Player player = event.getPlayer();
         plugin.getPlayerDataHandler().loadPlayerDataFromPlayer(player);
-        plugin.getCaptchaHandler().login(player);
     }
 }

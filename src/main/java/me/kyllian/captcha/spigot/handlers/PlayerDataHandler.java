@@ -25,9 +25,7 @@ public class PlayerDataHandler {
     }
 
     public void reloadPlayerData() {
-        playerDataMap.entrySet().forEach(playerData -> {
-            playerData.getValue().reloadData();
-        });
+        playerDataMap.forEach((key, value) -> value.reloadData());
     }
 
     public void loadPlayerDataFromPlayer(Player player) {

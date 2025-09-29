@@ -28,25 +28,8 @@ public class PlayerChatListener implements Listener {
         PlayerData playerData = plugin.getPlayerDataHandler().getPlayerDataFromPlayer(player);
         if (playerData.hasAssignedCaptcha()) {
             event.setCancelled(true);
-            boolean matches = event.getMessage().equals(playerData.getAssignedCaptcha().getAnswer());
-            CaptchaCompleteEvent completeEvent = new CaptchaCompleteEvent(player, playerData.getAssignedCaptcha(), event.getMessage(), matches ? SolveState.OK : SolveState.FAIL);
-            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(completeEvent));
-            if (completeEvent.isCancelled()) {
-                return;
-            }
-            removeCaptcha(player, completeEvent.getState());
-        } else if (!playerData.hasMoved() && plugin.getConfig().getBoolean("captcha-settings.require-move-action")) {
-            player.sendMessage(plugin.getMessageHandler().getMessage("move"));
-            event.setCancelled(true);
+            plugin.getCaptchaHandler().captchaInput(player, event.getMessage());
         }
     }
 
-    public void removeCaptcha(Player player, SolveState solveState) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                plugin.getCaptchaHandler().removeAssignedCaptcha(player, solveState);
-            }
-        }.runTask(plugin);
-    }
 }
