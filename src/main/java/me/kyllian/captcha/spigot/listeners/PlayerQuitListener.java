@@ -6,27 +6,25 @@ import me.kyllian.captcha.spigot.player.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority; // Import added
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.event.player.PlayerQuitEvent;
 
-public class PlayerDropItemListener implements Listener {
+public class PlayerQuitListener implements Listener {
+    final private CaptchaPlugin plugin;
 
-    private CaptchaPlugin plugin;
-
-    public PlayerDropItemListener(CaptchaPlugin plugin) {
+    public PlayerQuitListener(CaptchaPlugin plugin) {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    @EventHandler
-    public void on(PlayerDropItemEvent event) {
+    // Priority is set here within the EventHandler annotation
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void on(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         PlayerData playerData = plugin.getPlayerDataHandler().getPlayerDataFromPlayer(player);
         if (playerData.hasAssignedCaptcha()) {
-            event.setCancelled(true);
-            Bukkit.getRegionScheduler().run(plugin, player.getLocation(), (s) ->
-                    plugin.getCaptchaHandler().removeAssignedCaptcha(player, SolveState.FAIL));
+            plugin.getCaptchaHandler().removeAssignedCaptcha(player, SolveState.OK);
         }
     }
 }

@@ -1,5 +1,6 @@
 package me.kyllian.captcha.spigot.handlers;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import me.kyllian.captcha.spigot.CaptchaPlugin;
 import me.kyllian.captcha.spigot.player.PlayerData;
 import org.bukkit.Bukkit;
@@ -14,33 +15,22 @@ public class PlayerDataHandler {
 
     private CaptchaPlugin plugin;
     private Map<UUID, PlayerData> playerDataMap;
-    private File playerFolder;
 
     public PlayerDataHandler(CaptchaPlugin plugin) {
         this.plugin = plugin;
-        playerDataMap = new HashMap<>();
-
-        playerFolder = new File(plugin.getDataFolder(), "players");
-        if (!playerFolder.exists()) playerFolder.mkdir();
-    }
-
-    public void reloadPlayerData() {
-        playerDataMap.forEach((key, value) -> value.reloadData());
+        this.playerDataMap = new Object2ObjectOpenHashMap<>();
     }
 
     public void loadPlayerDataFromPlayer(Player player) {
-        playerDataMap.put(player.getUniqueId(), new PlayerData(plugin, player));
+        playerDataMap.put(player.getUniqueId(), new PlayerData());
     }
 
     public PlayerData getPlayerDataFromUUID(UUID uuid) {
-        return playerDataMap.computeIfAbsent(uuid, f -> new PlayerData(plugin, Bukkit.getPlayer(uuid)));
+        return playerDataMap.computeIfAbsent(uuid, f -> new PlayerData());
     }
 
     public PlayerData getPlayerDataFromPlayer(Player player) {
         return getPlayerDataFromUUID(player.getUniqueId());
     }
 
-    public File getPlayerFolder() {
-        return playerFolder;
-    }
 }

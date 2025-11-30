@@ -1,65 +1,21 @@
 package me.kyllian.captcha.spigot.player;
 
-import me.kyllian.captcha.spigot.CaptchaPlugin;
 import me.kyllian.captcha.spigot.captchas.Captcha;
 import me.kyllian.captcha.spigot.captchas.SolveState;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
-
-import java.io.File;
-import java.io.IOException;
 
 public class PlayerData {
     private Captcha assignedCaptcha;
     private boolean moved;
     private boolean forced;
+    private boolean passed;
     private ItemStack backupItem;
     private Location backupLocation;
     private int fails;
     private BukkitTask delayedTask;
     private String executeAfterFinish;
-
-    private File file;
-    private FileConfiguration fileConfiguration;
-
-    public PlayerData(CaptchaPlugin plugin, Player player) {
-        file = new File(
-                plugin.getPlayerDataHandler().getPlayerFolder(),
-                player.getUniqueId().toString() + ".yml");
-        try {
-            if (!file.exists()) {
-                file.createNewFile();
-                fileConfiguration = YamlConfiguration.loadConfiguration(file);
-                fileConfiguration.set("passed", false);
-                fileConfiguration.set("total-fails", 0);
-                fileConfiguration.set("last-pass", 0);
-                saveData();
-            } else {
-                fileConfiguration = YamlConfiguration.loadConfiguration(file);
-            }
-        } catch (IOException exception) {
-            Bukkit.getLogger().info("[Captcha] An error occured, please report the following error:");
-            exception.printStackTrace();
-        }
-    }
-
-    public void reloadData() {
-        fileConfiguration = YamlConfiguration.loadConfiguration(file);
-    }
-
-    public void saveData() {
-        try {
-            fileConfiguration.save(file);
-        } catch (IOException exception) {
-            Bukkit.getLogger().info("[Captcha] An error occured, please report the following error:");
-            exception.printStackTrace();
-        }
-    }
 
     public boolean hasAssignedCaptcha() {
         return assignedCaptcha != null;
@@ -85,21 +41,13 @@ public class PlayerData {
         if (solveState == SolveState.FAIL || solveState == SolveState.LEAVE) {
             fail();
         } else if (solveState == SolveState.OK) {
-            fileConfiguration.set("last-pass", System.currentTimeMillis());
-            fileConfiguration.set("passed", true);
-            saveData();
+            passed = true;
         }
     }
 
     public void fail() {
-        fileConfiguration.set("total-fails", fileConfiguration.getInt("total-fails") + 1);
-        fileConfiguration.set("passed", false);
-        saveData();
+        passed = false;
         this.fails++;
-    }
-
-    public long getLastPass() {
-        return fileConfiguration.getLong("last-pass");
     }
 
     public void setBackupItem(ItemStack backupItem) {
@@ -109,7 +57,6 @@ public class PlayerData {
     public ItemStack getBackupItem() {
         return backupItem;
     }
-
 
     public void setDelayedTask(BukkitTask delayedTask) {
         this.delayedTask = delayedTask;
@@ -121,7 +68,7 @@ public class PlayerData {
     }
 
     public boolean hasPassed() {
-        return fileConfiguration.getBoolean("passed");
+        return passed;
     }
 
     public boolean hasMoved() {

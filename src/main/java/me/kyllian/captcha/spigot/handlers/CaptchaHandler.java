@@ -23,35 +23,22 @@ public class CaptchaHandler {
 
     private CaptchaPlugin plugin;
     private CaptchaFactory captchaFactory;
-    private long bootTime;
 
     public CaptchaHandler(CaptchaPlugin plugin) {
         this.plugin = plugin;
         captchaFactory = new CaptchaFactory(plugin);
-        bootTime = System.currentTimeMillis();
-    }
-
-    public void login(Player player) {
-        PlayerData playerData = plugin.getPlayerDataHandler().getPlayerDataFromPlayer(player);
-        Mode mode = Mode.valueOf(plugin.getConfig().getString("captcha-settings.mode"));
-        if (mode == Mode.NONE) return;
-        if (mode == Mode.FIRSTJOIN && (player.hasPlayedBefore() && playerData.hasPassed())) return;
-        if (mode == Mode.RESTART && bootTime < playerData.getLastPass()) return;
-        if (mode == Mode.AFTER && System.currentTimeMillis() - playerData.getLastPass() < plugin.getConfig().getInt("captcha-settings.after"))
-            return;
-        try {
-            assignCaptcha(player);
-        } catch (IllegalStateException exception) {
-            exception.printStackTrace();
-        }
     }
 
     public Captcha assignCaptcha(Player player) throws IllegalStateException {
         PlayerData playerData = plugin.getPlayerDataHandler().getPlayerDataFromPlayer(player);
-        if (playerData.hasAssignedCaptcha()) throw new IllegalStateException("The player is already solving a captcha");
+        if (playerData.hasAssignedCaptcha()) {
+            throw new IllegalStateException("The player is already solving a captcha");
+        }
+
         if ((player.isOp() && plugin.getConfig().getBoolean("captcha-settings.op-override"))
                 || player.hasPermission("captcha.override") && plugin.getConfig().getBoolean("captcha-settings.permission-override"))
             return null;
+
         player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, Integer.MAX_VALUE, 255));
         int heldSlot = plugin.getConfig().getInt("captcha-settings.held-slot");
         if (heldSlot != -1) player.getInventory().setHeldItemSlot(heldSlot);
@@ -62,26 +49,17 @@ public class CaptchaHandler {
         playerData.setBackupItem(HandUtils.getItemInHand(player));
         playerData.setBackupLocation(player.getLocation());
 
-        if (plugin.getSafeArea().getLocation() != null) player.teleport(plugin.getSafeArea().getLocation());
+        if (plugin.getSafeArea().getLocation() != null) player.teleportAsync(plugin.getSafeArea().getLocation());
         try {
             captcha.send();
         } catch (NoSuchElementException exception) {
             player.kickPlayer(plugin.getMessageHandler().getMessage("no-maps"));
             return null;
         }
-        new BukkitRunnable() {
-            public void run() {
-                notifyBungee(player, true);
-                player.sendMessage(plugin.getMessageHandler().getMessage("join"));
-            }
-        }.runTaskLater(plugin, 1);
-        playerData.setDelayedTask(new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (isCancelled()) return;
-                removeAssignedCaptcha(player, SolveState.FAIL);
-            }
-        }.runTaskLater(plugin, plugin.getConfig().getLong("captcha-settings.time")));
+        Bukkit.getGlobalRegionScheduler().run(plugin, (s) -> {
+            notifyBungee(player, true);
+            player.sendMessage(plugin.getMessageHandler().getMessage("join"));
+        });
         return captcha;
     }
 
@@ -93,7 +71,7 @@ public class CaptchaHandler {
 
         boolean matches = input.equals(playerCaptcha.getAnswer());
         CaptchaCompleteEvent completeEvent = new CaptchaCompleteEvent(player, playerCaptcha, input, SolveState.OK);
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(completeEvent));
+        Bukkit.getGlobalRegionScheduler().run (plugin, (s) -> Bukkit.getPluginManager().callEvent(completeEvent));
         if (completeEvent.isCancelled()) {
             return false;
         }
@@ -103,12 +81,8 @@ public class CaptchaHandler {
     }
 
     private void removeCaptcha(Player player, SolveState solveState) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                plugin.getCaptchaHandler().removeAssignedCaptcha(player, solveState);
-            }
-        }.runTask(plugin);
+        Bukkit.getRegionScheduler().run(plugin, player.getLocation(), (s) ->
+                plugin.getCaptchaHandler().removeAssignedCaptcha(player, solveState));
     }
 
     public void removeAssignedCaptcha(Player player, SolveState solveState) {
@@ -116,7 +90,7 @@ public class CaptchaHandler {
         PlayerData playerData = plugin.getPlayerDataHandler().getPlayerDataFromPlayer(player);
         plugin.getMapHandler().resetMap(HandUtils.getItemInHand(player));
         HandUtils.setItemInHand(player, playerData.getBackupItem());
-        player.teleport(playerData.getBackupLocation());
+        player.teleportAsync(playerData.getBackupLocation());
         playerData.removeAssignedCaptcha();
         playerData.cancel();
         playerData.handleSolveState(solveState);
@@ -126,7 +100,7 @@ public class CaptchaHandler {
         if (solveState == SolveState.LEAVE) return;
         player.sendMessage(plugin.getMessageHandler().getMessage(solveState == SolveState.OK ? "success" : "fail"));
         if (solveState == SolveState.FAIL) {
-            plugin.getConfig().getStringList("captcha-settings.commands-on-fail").stream().forEach(command -> execute(command, player));
+            plugin.getConfig().getStringList("captcha-settings.commands-on-fail").forEach(command -> execute(command, player));
             if (playerData.getFails() >= plugin.getConfig().getInt("captcha-settings.attempts")) {
                 player.kickPlayer(plugin.getMessageHandler().getMessage("kick"));
                 return;

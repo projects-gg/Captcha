@@ -5,6 +5,7 @@ main: me.kyllian.captcha.spigot.CaptchaPlugin
 author: Kyllian
 api-version: 1.13
 softdepend: [AuthMe, MultiVerse-Core]
+folia-supported: true
 
 commands:
   captcha:

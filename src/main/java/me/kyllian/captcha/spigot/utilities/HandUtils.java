@@ -18,6 +18,8 @@ public class HandUtils {
     }
 
     public static void setItemInHand(Player player, ItemStack item) {
+        if (item == null) return;
+
         if (old) player.getInventory().setItemInHand(item);
         else player.getInventory().setItemInMainHand(item);
     }

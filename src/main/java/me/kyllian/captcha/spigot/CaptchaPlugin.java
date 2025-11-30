@@ -5,14 +5,12 @@ import me.kyllian.captcha.spigot.captchas.SolveState;
 import me.kyllian.captcha.spigot.commands.CaptchaCommand;
 import me.kyllian.captcha.spigot.handlers.*;
 import me.kyllian.captcha.spigot.listeners.*;
-import me.kyllian.captcha.spigot.listeners.login.LoginListener;
 import me.kyllian.captcha.spigot.listeners.login.PlayerJoinListener;
 import me.kyllian.captcha.spigot.map.MapHandlerFactory;
 import me.kyllian.captcha.spigot.utilities.SafeArea;
 
 import java.io.File;
 
-import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -61,13 +59,17 @@ public class CaptchaPlugin extends JavaPlugin {
     }
 
     public void loadListeners() {
-        new PlayerChatListener(this);
+        new InventoryClickListener(this);
+        new EntityDamageListener(this);
+        new PlayerDeathListener(this);
+        new PlayerRespawnListener(this);
         new PlayerCommandPreprocessListener(this);
         new PlayerDropItemListener(this);
         new PlayerItemHeldListener(this);
         //if (Bukkit.getPluginManager().getPlugin("AuthMe") != null) new LoginListener(this);
         //else new PlayerJoinListener(this);
         new PlayerJoinListener(this);
+        new PlayerQuitListener(this);
         new PlayerSwapHandItemsListener(this);
     }
 
@@ -101,6 +103,10 @@ public class CaptchaPlugin extends JavaPlugin {
 
     public static boolean captchaInput(Player player, String input) {
         return INSTANCE.captchaHandler.captchaInput(player, input);
+    }
+
+    public static boolean hasCaptcha(Player player) {
+        return INSTANCE.getPlayerDataHandler().getPlayerDataFromPlayer(player).hasAssignedCaptcha();
     }
 
     public static void closeCaptcha(Player player, SolveState solveState) {
