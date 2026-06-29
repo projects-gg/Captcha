@@ -63,9 +63,8 @@ public class MapHandlerNew implements MapHandler {
         maps.forEach(mapID -> {
             ItemStack map = new ItemStack(Material.valueOf("FILLED_MAP"));
             MapMeta meta = (MapMeta) map.getItemMeta();
-            meta.setMapId((int) mapID.shortValue());
+            meta.setMapView(Bukkit.getMap(mapID));
             map.setItemMeta(meta);
-            //map.setDurability(mapID.shortValue());
             mapsUsing.put(map, false);
         });
     }
